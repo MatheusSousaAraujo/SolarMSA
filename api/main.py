@@ -1,4 +1,4 @@
-# main.py (Revertido para a versão compatível com sua biblioteca)
+# main.py (Modificado para usar Variáveis de Ambiente)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +7,10 @@ import models
 from database import engine
 import os
 from pathlib import Path
+from dotenv import load_dotenv # 1. Importar load_dotenv
+
+# 2. Carregar variáveis de .env (para testes locais)
+load_dotenv() 
 
 # Importa os routers
 from routers import auth, users, usinas, consumidores, fluxos
@@ -24,35 +28,34 @@ app = FastAPI(
 )
 
 # --- Middleware CORS Principal (para os endpoints da API) ---
-origins = [
-    "http://localhost:3000",
-    "http://localhost:5173"
-]
+# 3. Ler as origens das variáveis de ambiente
+# Define um padrão para o ambiente local
+default_origins = "http://localhost:3000,http://localhost:5173"
+
+# Pega a variável 'CORS_ORIGINS' do Render, ou usa o padrão se não existir
+origins_env = os.getenv("CORS_ORIGINS", default_origins)
+
+# Converte a string (separada por vírgula) em uma lista
+origins = origins_env.split(",")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins, # Usa a lista dinâmica
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # --- Montagem dos Arquivos Estáticos com seu PRÓPRIO Middleware CORS ---
-# Esta é a abordagem correta para versões mais antigas do FastAPI/Starlette.
-
-# Garante que o diretório 'anexos' existe
 os.makedirs(ANEXOS_DIR, exist_ok=True)
-
-# 1. Criamos a aplicação de arquivos estáticos
 static_files_app = StaticFiles(directory=ANEXOS_DIR)
 
-# 2. "Embrulhamos" essa aplicação com um middleware CORS dedicado
 app.mount("/anexos",
     CORSMiddleware(
         app=static_files_app,
-        allow_origins=origins,
+        allow_origins=origins, # Usa a mesma lista dinâmica
         allow_credentials=True,
-        allow_methods=["GET"],  # Apenas GET é necessário para servir arquivos
+        allow_methods=["GET"],
         allow_headers=["*"],
     ),
     name="anexos"
