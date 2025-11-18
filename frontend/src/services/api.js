@@ -1,7 +1,8 @@
 // src/services/api.js (Versão Corrigida para Endpoint de Documentos)
 
 // 1. Definir a URL base da API em um lugar só
-const API_BASE_URL = 'http://127.0.0.1:8000';
+
+const API_BASE_URL = 'https://solarmsa.onrender.com';
 
 // Helper function para tratar erros de API
 async function handleResponse(response) {
