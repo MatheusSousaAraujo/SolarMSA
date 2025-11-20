@@ -1,5 +1,3 @@
-// src/pages/DocumentosFormPage.jsx (CÓDIGO COMPLETO E FINAL CORRIGIDO NOVAMENTE)
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
@@ -7,38 +5,31 @@ import { ArrowLeftIcon, CloudArrowUpIcon, CheckCircleIcon, ExclamationCircleIcon
 import { getConsumidorById, uploadFaturaConsumidor, calcularGerarRelatorio } from '../services/api';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
-// Configuração para react-pdf (Worker)
-import { Document, Page } from 'react-pdf'; 
-import * as pdfjsLib from 'pdfjs-dist'; // 🚨 NOVO: Importa tudo de pdfjs-dist
+// Configuração para react-pdf
+import { Document, Page, pdfjs } from 'react-pdf'; 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-// 🚨 CORREÇÃO CRÍTICA DO WORKER
-// Define o workerSrc usando new URL() para ser compatível com Vite/Webpack 5+
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString();
+// 🚨 CORREÇÃO CRÍTICA DO WORKER: Tenta um caminho relativo para o worker
+// Isso exige que o pdf.worker.min.js esteja na pasta 'public' ou no local correto da build.
+// Se o erro 404 persistir, você deve usar a URL absoluta, ex: 'https://matheussousaaraujo.github.io/SolarMSA/frontend/pdf.worker.min.mjs'
+pdfjs.GlobalWorkerOptions.workerSrc = `./pdf.worker.min.mjs`;
 
-// Alias para manter a compatibilidade do Document com o objeto pdfjs
-const pdfjs = pdfjsLib; 
 
-// --- VARIÁVEL DE AMBIENTE DA API (necessário para a URL de download) ---
-const API_BASE_URL = 'http://127.0.0.1:8000'; 
+// --- VARIÁVEL DE AMBIENTE DA API ---
+// 🚨 CORREÇÃO ESSENCIAL: URL de PRODUÇÃO da sua API no Render
+const API_BASE_URL = 'https://solarmsa.onrender.com'; 
 // -----------------------------------------------------------------------
 
 /**
  * Componente de Miniatura de PDF com botões de Ação (Ver/Baixar).
  */
 const MiniaturaPDFComAcoesComponent = ({ anexo }) => { 
-    // HOOKS MOVIDOS PARA O TOPO
     const [isDownloading, setIsDownloading] = useState(false);
-
-    const url = anexo?.url || (anexo?.file ? URL.createObjectURL(anexo.file) : null); 
+    const url = useMemo(() => anexo?.url || (anexo?.file ? URL.createObjectURL(anexo.file) : null), [anexo]);
     const nomeOriginal = anexo?.nome_original || anexo?.file?.name || "Documento";
 
     useEffect(() => {
-        // A lógica de cleanup é executada no fim da vida ou antes da próxima render
         const isBlob = anexo?.file && url?.startsWith('blob:');
 
         return () => {
@@ -49,10 +40,6 @@ const MiniaturaPDFComAcoesComponent = ({ anexo }) => {
         };
     }, [url, anexo]); 
 
-    // FIM DOS HOOKS
-
-    // --- INÍCIO DOS RETORNOS CONDICIONAIS ---
-    
     if (!anexo || !url) return ( 
         <div className="flex flex-col items-center p-3 border rounded-lg w-48 shadow-sm border-gray-300 bg-gray-50 h-[300px] justify-center">
             <p className="text-sm text-gray-500 text-center">Nenhum documento anexado.</p>
@@ -63,7 +50,8 @@ const MiniaturaPDFComAcoesComponent = ({ anexo }) => {
     const handleDownload = async () => {
         if (!url) return;
 
-        const needsAuth = url.startsWith('http');
+        // Verifica se a URL é externa (API) e precisa de autenticação
+        const needsAuth = url.startsWith(API_BASE_URL);
         
         setIsDownloading(true);
         try {
@@ -79,8 +67,8 @@ const MiniaturaPDFComAcoesComponent = ({ anexo }) => {
             const response = await fetch(url, fetchOptions);
 
             if (response.status === 401) {
-                   alert("Sessão expirada ou não autorizada. Não foi possível baixar o arquivo.");
-                   return;
+                    alert("Sessão expirada ou não autorizada. Não foi possível baixar o arquivo.");
+                    return;
             }
             if (!response.ok) throw new Error(`Falha ao buscar o arquivo. Status: ${response.status}`);
             
@@ -102,6 +90,7 @@ const MiniaturaPDFComAcoesComponent = ({ anexo }) => {
 
         } catch (error) {
             console.error("Erro ao forçar o download:", error);
+            alert(`Erro ao baixar: ${error.message}. Verifique a API e o token.`);
         } finally {
             setIsDownloading(false);
         }
@@ -117,7 +106,7 @@ const MiniaturaPDFComAcoesComponent = ({ anexo }) => {
            <p className="text-xs font-medium text-gray-700 mb-2 truncate w-full text-center" title={nomeOriginal}> 
                 {nomeOriginal}
            </p>
-           
+            
            {/* Pré-visualização do PDF */}
            <div className="mb-2 border border-gray-200 rounded overflow-hidden"> 
                 <Document
@@ -153,11 +142,11 @@ const MiniaturaPDFComAcoesComponent = ({ anexo }) => {
                 
                 {/* 2. Botão de Baixar (Força o Download via JavaScript) */}
                 <button
-                     type="button" 
-                     onClick={handleDownload} 
-                     disabled={isDownloading} 
-                     title="Baixar Documento"
-                     className={downloadButtonClass}
+                    type="button" 
+                    onClick={handleDownload} 
+                    disabled={isDownloading} 
+                    title="Baixar Documento"
+                    className={downloadButtonClass}
                 >
                     {isDownloading ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -203,6 +192,7 @@ export default function DocumentosFormPage() {
       return {
         id: relatorioData.id,
         nome_original: relatorioData.nome || `Relatório-${relatorioData.id}.pdf`,
+        // Usa a URL CORRETA do Render para download/visualização
         url: `${API_BASE_URL}/${relatorioData.caminho_armazenamento}` 
       };
     }, [relatorioData]);
@@ -219,7 +209,8 @@ export default function DocumentosFormPage() {
                 const data = await getConsumidorById(cId, token);
                 setConsumidor(data);
             } catch (err) {
-                setError(`Consumidor ID ${cId} não encontrado.`);
+                // Aqui pode estar o outro erro 401 se o token falhar na carga inicial
+                setError(`Consumidor ID ${cId} não encontrado. Verifique sua conexão e autenticação.`);
             }
         };
         fetchConsumidor();
@@ -237,7 +228,7 @@ export default function DocumentosFormPage() {
     }, []);
     const faturaDropzone = useDropzone({ onDrop: onFaturaDrop, accept: { 'application/pdf': ['.pdf'] }, multiple: false });
 
-    // Esta função não é mais usada para remover via botão, mas é mantida por segurança.
+    // Função de remoção mantida
     const handleRemoveFaturaLocal = useCallback(() => {
       setFaturaFile(null);
       setFaturaData(null);
@@ -258,11 +249,12 @@ export default function DocumentosFormPage() {
         try {
             const dataToSend = new FormData();
             dataToSend.append('file', faturaFile);
-            const responseData = await uploadFaturaConsumidor(cId, dataToSend, token);
+            // uploadFaturaConsumidor deve garantir que o token é enviado
+            const responseData = await uploadFaturaConsumidor(cId, dataToSend, token); 
             setFaturaData(responseData);
             setSuccess(`Fatura salva! ID: ${responseData.id}. Agora pode gerar o relatório.`);
         } catch (err) {
-            setError(`Falha ao salvar a fatura: ${err.message}`);
+            setError(`Falha ao salvar a fatura: ${err.message}. Verifique a rota da API e o token.`);
         } finally {
             setIsUploading(false);
         }
@@ -279,12 +271,13 @@ export default function DocumentosFormPage() {
         setError('');
 
         try {
+            // calcularGerarRelatorio deve garantir que o token é enviado
             const responseData = await calcularGerarRelatorio(faturaData.id, token); 
             setRelatorioData(responseData.relatorio_gerado); 
             setSuccess("Relatório gerado e salvo com sucesso! Veja a pré-visualização na Coluna 3.");
             
         } catch (err) {
-            setError(`Falha ao gerar relatório: ${err.message}`);
+            setError(`Falha ao gerar relatório: ${err.message}. Verifique a rota da API e o token.`);
         } finally {
             setIsProcessing(false);
         }

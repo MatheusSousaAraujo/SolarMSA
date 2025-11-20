@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://MatheusSousaAraujo.github.io/SolarMSA/", 
+  "homepage": "https://MatheusSousaAraujo.github.io/SolarMSA/frontend", 
   "scripts": {
     "dev": "vite",
     "build": "vite build",
