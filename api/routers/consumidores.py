@@ -1,3 +1,4 @@
+
 # routers/consumidores.py (VERSÃO FINAL E CORRIGIDA)
 
 from typing import List, Optional, Dict, Union
