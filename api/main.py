@@ -28,7 +28,7 @@ app = FastAPI(
 )
 
 # --- Middleware CORS Principal ---
-default_origins = "http://localhost:3000,http://localhost:5173"
+default_origins = "http://localhost:3000,http://localhost:5173,,https://solar-msa-7ofn.vercel.app",
 origins_env = os.getenv("CORS_ORIGINS", default_origins)
 origins = origins_env.split(",")
 
