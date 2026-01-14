@@ -2,7 +2,7 @@
 
 // 1. Definir a URL base da API em um lugar só
 
-const API_BASE_URL = 'https://solar-msa.vercel.app';
+const API_BASE_URL = 'http://167.234.226.1:8000';
 
 // Helper function para tratar erros de API
 async function handleResponse(response) {
