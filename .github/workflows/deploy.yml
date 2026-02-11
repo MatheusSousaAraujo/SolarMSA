@@ -2,17 +2,26 @@ name: Deploy Frontend to Pages
 
 on:
   push:
-    branches: [ main ] # Dispara o deploy sempre que você der push na main
+    branches: [ main ]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend # Define que os comandos rodam dentro da pasta frontend
+
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v4
 
+      - name: Install and Build 🏗️
+        run: |
+          npm install
+          npm run build
+
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: frontend # Aqui dizemos ao GitHub para publicar SÓ esta pasta
-          branch: gh-pages # O conteúdo vai para essa branch invisível
+          folder: frontend/dist # O Vite coloca o resultado final nesta pasta
+          branch: gh-pages
